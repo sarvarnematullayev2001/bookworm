@@ -1,7 +1,7 @@
 # Aiogram
 import logging
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ContentTypes, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton, ContentTypes, InlineKeyboardButton, InlineKeyboardMarkup
 
 
 # Utility functions
@@ -61,6 +61,8 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler(commands=['video'])
 async def send_video(message: types.Message):
+    global book_type
+    book_type = {}
     video = open('images/video.mp4', 'rb')
     await message.reply('Video yuklanmoqda... Iltimos biroz kuting!')
     await bot.send_video(chat_id=message.chat.id, video=video, caption="Kitob buyurtma berish uchun /buyurtma komandasidan foydalaning.")
@@ -109,11 +111,11 @@ async def send_photo(message: types.Message):
             await bot.send_photo(chat_id=channel_id, photo=message.photo[-1].file_id, caption=f"#Buyurtma N{order}")
             await message.answer("Kitob tayyor bo'lgach uni shu manzildan olib ketsangiz bo'ladi")
             await bot.send_location(chat_id=message.chat.id, latitude=41.328213, longitude=69.227373)
-            await message.answer("Agarda savollaringiz bo'lsa /admin komandasidan foydalanib biz bilan bog'lanishingiz mumkin.\nBoshqa kitobni buyurtma qilish uchun /buyurtma komandasidan foydalaning.")
+            await message.answer("Agarda savollaringiz bo'lsa /admin komandasidan foydalanib biz bilan bog'lanishingiz mumkin.\nBoshqa kitobni buyurtma qilish uchun /buyurtma komandasidan foydalaning.", reply_markup=ReplyKeyboardRemove())
         else:
-            await message.answer("Tag nomi shunday yozilishi shart: #kvitansiya")
+            await message.answer("Tag nomi shunday yozilishi shart: #kvitansiya", reply_markup=ReplyKeyboardRemove())
     else:
-        await message.reply("Iltimos botga to'g'ri ma'lumot kiriting.")
+        await message.reply("Iltimos botga to'g'ri ma'lumot kiriting.", reply_markup=ReplyKeyboardRemove())
 
 
 @dp.message_handler()
@@ -130,29 +132,29 @@ async def reply_for_unknowns(message: types.Message):
         await message.reply("Kitobingiz betlari rangli bo'lsinmi yoki oq-qora?", reply_markup=color_of_pages)
     elif message.text == 'oq-qora' or message.text == 'rangli':
         book_type['color'] = message.text
-        await message.reply("Kitob betlari soni qancha. Son ko'rinishida kiriting.\nMasalan:\n250")
+        await message.reply("Kitob betlari soni qancha. Son ko'rinishida kiriting.\nMasalan:\n250", reply_markup=ReplyKeyboardRemove())
     elif message.text.isdigit() and ('cover' in book_type.keys() or ('color' and 'format') in book_type.keys()) and 'pages' not in book_type.keys():
         if int(message.text) > 50:    
             book_type['pages'] = message.text
-            await message.reply("Shu kitobdan nechta nashr etmoqchisiz?. Son ko'rinishida kiriting.\nMasalan:\n1")
+            await message.reply("Shu kitobdan nechta nashr etmoqchisiz?. Son ko'rinishida kiriting.\nMasalan:\n1", reply_markup=ReplyKeyboardRemove())
         else:
-            await message.reply("Kitob nashr etish uchun minimum betlari soni 50 dan katta bo'lishi lozim")
+            await message.reply("Kitob nashr etish uchun minimum betlari soni 50 dan katta bo'lishi lozim", reply_markup=ReplyKeyboardRemove())
     elif message.text.isdigit() and 'pages' in book_type.keys():
         if int(message.text) > 0:
             book_type['number_of_books'] = message.text
             await message.answer("Siz bilan bog'lanishimiz uchun telefon raqamingizni qoldiring.", reply_markup=phone_number)
         else:
-            await message.answer("Siz kamida bitta kitob nashr etish uchun buyurtma bera olasiz.")
+            await message.answer("Siz kamida bitta kitob nashr etish uchun buyurtma bera olasiz.", reply_markup=ReplyKeyboardRemove())
     elif message.text.startswith('!') and message.text.endswith('!'):
         book_type['add_info'] = message.text
         order += 1
         if book_type['format'] == 'A5':    
             caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n9.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await message.answer_document(book, caption=caption_for_a5, parse_mode='markdown')
+            await message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
             book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
         else:
             caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n8.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await message.answer_document(book, caption=caption_for_a4, parse_mode='markdown')
+            await message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
             book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
         await message.answer("Buyurtmani tasdiqlaysizmi!", reply_markup=confirmation)
         book_type = {}
@@ -163,17 +165,17 @@ async def reply_for_unknowns(message: types.Message):
 @dp.callback_query_handler(text=['YeS', 'nO'])
 async def respond_answer(call: types.CallbackQuery):
     if call.data == 'YeS':
-        await call.message.reply("Unday bo'lsa ! belgisidan foydalanib ma'lumotingizni quyidagicha kiriting.\nMasalan: !Kitob 200 betgacha chiqarilsin!")
+        await call.message.reply("Unday bo'lsa ! belgisidan foydalanib ma'lumotingizni quyidagicha kiriting.\nMasalan: !Kitob 200 betgacha chiqarilsin!", reply_markup=ReplyKeyboardRemove())
     else:
         global order, book_type, book_info
         order += 1
         if book_type['format'] == 'A5':
             caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown')
+            await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
             book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
         else:
             caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown')
+            await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
             book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
         await call.message.answer("Buyurtmani tasdiqlaysizmi!", reply_markup=confirmation)
         book_type = {}
@@ -182,12 +184,12 @@ async def respond_answer(call: types.CallbackQuery):
 @dp.callback_query_handler(text=['confirm', 'cancel'])
 async def send_confirmation(call: types.CallbackQuery):
     if call.data == 'confirm':
-        await call.message.answer("9860 6004 3152 6265\n*Sarvar Ne'matullayev*\n\n_Ushbu yuqorida ko'rsatilgan plastik raqamga to'lovni amalga oshiring, so'ngra to'lov kvitansiyasini yoki to'lov o'tkazilganligi haqidagi screenshotni #kvitansiya tagini yozgan holda yuboring._", parse_mode='markdown')
+        await call.message.answer("9860 6004 3152 6265\n*Sarvar Ne'matullayev*\n\n_Ushbu yuqorida ko'rsatilgan plastik raqamga to'lovni amalga oshiring, so'ngra to'lov kvitansiyasini yoki to'lov o'tkazilganligi haqidagi screenshotni #kvitansiya tagini yozgan holda yuboring._", parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
     else:
         global book_type, order
         order -= 1 
         book_type = {}
-        await call.message.answer("Buyurtmangiz bekor qilindi!. Qaytadan boshlash uchun /buyurtma komandasini bosing.")
+        await call.message.answer("Buyurtmangiz bekor qilindi!. Qaytadan boshlash uchun /buyurtma komandasini bosing.", reply_markup=ReplyKeyboardRemove())
 
 
 if __name__ == '__main__':
