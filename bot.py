@@ -109,7 +109,7 @@ async def send_photo(message: types.Message):
         if message.caption == '#kvitansiya':
             await book_info
             await bot.send_photo(chat_id=channel_id, photo=message.photo[-1].file_id, caption=f"#Buyurtma N{order}")
-            await message.answer("Kitob tayyor bo'lgach uni shu manzildan olib ketsangiz bo'ladi")
+            await message.answer("Kitob tayyor bo'lgach uni shu manzildan olib ketsangiz bo'ladi", reply_markup=ReplyKeyboardRemove())
             await bot.send_location(chat_id=message.chat.id, latitude=41.328213, longitude=69.227373)
             await message.answer("Agarda savollaringiz bo'lsa /admin komandasidan foydalanib biz bilan bog'lanishingiz mumkin.\nBoshqa kitobni buyurtma qilish uchun /buyurtma komandasidan foydalaning.", reply_markup=ReplyKeyboardRemove())
         else:
