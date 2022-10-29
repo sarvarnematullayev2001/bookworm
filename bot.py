@@ -25,11 +25,18 @@ soft = KeyboardButton('yumshoq')
 hard = KeyboardButton('qattiq')
 cover = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(soft, hard)
 
+
 phone_number = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(KeyboardButton('Telefon raqamini ulashish', request_contact=True))
+
 
 yes = InlineKeyboardButton(text='Ha', callback_data='YeS')
 no = InlineKeyboardButton(text="Yo'q", callback_data='nO')
 my_response = InlineKeyboardMarkup().add(yes, no)
+
+
+yes_deliver = InlineKeyboardButton(text="Ha yetkazib berilsin", callback_data='Yes deliver to me')
+no_i_bring_myself = InlineKeyboardButton(text="Yo'q o'zim olib ketaman", callback_data='No I bring myself')
+delivery = InlineKeyboardMarkup().add(yes_deliver, no_i_bring_myself)
 
 
 confirm = InlineKeyboardButton(text='Tasdiqlayman', callback_data='confirm')
@@ -56,7 +63,7 @@ dp = Dispatcher(bot)
 async def send_welcome(message: types.Message):
     global book_type
     book_type = {}
-    await message.answer(f"Assalomu Alaykum {message.from_user.full_name}!,\nIltimos nashr etmoqchi bo'lgan kitobingizni PDF formatda yuklang")
+    await message.answer(f"Assalomu Alaykum {message.from_user.full_name}!,\nIltimos nashr etmoqchi bo'lgan kitobingizni PDF formatda yuklang.\n\n_Agarda kitobingizni PDF formatdagisini topa olmasangiz @MegaBooksbot orqali istalgan kitobingizni nomini yozib PDF formatda yuklab olishingiz mumkin._", parse_mode='markdown')
 
 
 @dp.message_handler(commands=['video'])
@@ -81,7 +88,7 @@ async def send_video(message: types.Message):
 
 @dp.message_handler(commands=['admin'])
 async def send_admin(message: types.Message):
-    await message.answer("Telefon raqam: +998335551301\nTelegram username: @sarvar_nematullayev")
+    await message.answer("Telefon raqam: +998 33 555 13 01\nTelegram username: @sarvar_nematullayev")
 
 
 @dp.message_handler(content_types=ContentTypes.DOCUMENT)
@@ -105,13 +112,19 @@ async def doc_handler(message: types.Message):
 
 @dp.message_handler(content_types=['photo'])
 async def send_photo(message: types.Message):
+    global book_type
     if message.caption:
         if message.caption == '#kvitansiya':
+            await message.answer("Kitobingiz buyurtma qilindi!. Kitobingiz tayyor bo'lishi bilanoq siz bilan bog'lanamiz.")
             await book_info
             await bot.send_photo(chat_id=channel_id, photo=message.photo[-1].file_id, caption=f"#Buyurtma N{order}")
-            await message.answer("Kitob tayyor bo'lgach uni shu manzildan olib ketsangiz bo'ladi", reply_markup=ReplyKeyboardRemove())
-            await bot.send_location(chat_id=message.chat.id, latitude=41.328213, longitude=69.227373)
+            if book_type['delivery'] == "Yo'q o'zim olib ketaman":
+                await message.answer("Kitobni shu manzildan olib ketsangiz bo'ladi", reply_markup=ReplyKeyboardRemove())
+                await bot.send_location(chat_id=message.chat.id, latitude=41.328213, longitude=69.227373)
+            else:
+                await message.answer("Yetkazib berish xizmati bilan bog'lanish uchun +998 90 968 47 47 ga qo'ng'iroq qiling.")
             await message.answer("Agarda savollaringiz bo'lsa /admin komandasidan foydalanib biz bilan bog'lanishingiz mumkin.\nBoshqa kitobni buyurtma qilish uchun /buyurtma komandasidan foydalaning.", reply_markup=ReplyKeyboardRemove())
+            book_type = {}
         else:
             await message.answer("Tag nomi shunday yozilishi shart: #kvitansiya", reply_markup=ReplyKeyboardRemove())
     else:
@@ -147,38 +160,66 @@ async def reply_for_unknowns(message: types.Message):
             await message.answer("Siz kamida bitta kitob nashr etish uchun buyurtma bera olasiz.", reply_markup=ReplyKeyboardRemove())
     elif message.text.startswith('!') and message.text.endswith('!'):
         book_type['add_info'] = message.text
-        order += 1
-        if book_type['format'] == 'A5':    
-            caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n9.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
-            book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
-        else:
-            caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n8.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
-            book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
-        await message.answer("Buyurtmani tasdiqlaysizmi!", reply_markup=confirmation)
-        book_type = {}
+        await message.answer("Kitobni yetkazib berish xizmatidan foydalanasizmi?. Toshkent shahri bo'ylab yetkazib berish narxi 25 000 so'mni tashkil etadi.", reply_markup=delivery)
     else:
         await message.answer("Botdan to'g'ri foydalanish uchun video qo'llanmani ko'rish uchun /video ni bosing.")
 
 
 @dp.callback_query_handler(text=['YeS', 'nO'])
 async def respond_answer(call: types.CallbackQuery):
+    global order, book_type, book_info
     if call.data == 'YeS':
         await call.message.reply("Unday bo'lsa ! belgisidan foydalanib ma'lumotingizni quyidagicha kiriting.\nMasalan: !Kitob 200 betgacha chiqarilsin!", reply_markup=ReplyKeyboardRemove())
     else:
-        global order, book_type, book_info
+        await call.message.answer("Kitobni yetkazib berish xizmatidan foydalanasizmi?. Toshkent shahri bo'ylab yetkazib berish narxi 25 000 so'mni tashkil etadi.", reply_markup=delivery)
+
+
+@dp.callback_query_handler(text=['Yes deliver to me', 'No I bring myself'])
+async def deliver(call: types.CallbackQuery):
+    global book_type, book_info, order
+    if call.data == 'Yes deliver to me':
+        book_type['delivery'] = 'Ha yetkazib berilsin'
         order += 1
-        if book_type['format'] == 'A5':
-            caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
-            book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
+        if 'add_info' in book_type.keys():
+            if book_type['format'] == 'A5':    
+                caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n9.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm\n10.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
+            else:
+                caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n8.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm\n9.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
         else:
-            caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
-            await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
-            book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
-        await call.message.answer("Buyurtmani tasdiqlaysizmi!", reply_markup=confirmation)
-        book_type = {}
+            if book_type['format'] == 'A5':
+                caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm\n9.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
+            else:
+                caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm\n8.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
+    else:
+        book_type['delivery'] = "Yo'q o'zim olib ketaman"
+        order += 1
+        if 'add_info' in book_type.keys():
+            if book_type['format'] == 'A5':    
+                caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n9.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm\n10.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
+            else:
+                caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Qo'shimcha ma'lumot - {book_type['add_info'].strip('!')}\n8.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm\n9.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
+        else:
+            if book_type['format'] == 'A5':
+                caption_for_a5 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob muqovasi - {book_type['cover']}\n6.Kitob betlari soni - {book_type['pages']}betgacha\n7.Tirajlar soni - {book_type['number_of_books']}\n8.Kitob narxi - {calculate_a5(book_type)[:-4]} so'm\n9.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a5, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a5, parse_mode='markdown')
+            else:
+                caption_for_a4 = f"*#Buyurtma N{order}\n\n1.Buyurtmachi - @{book_type['client']}\n2.Telefon raqami - {book_type['phone_number']}\n3.Kitob formati - {book_type['format']}\n4.Kitob betlari rangi - {book_type['color']}\n5.Kitob betlari soni - {book_type['pages']}betgacha\n6.Tirajlar soni - {book_type['number_of_books']}\n7.Kitob narxi - {calculate_a4(book_type)[:-4]} so'm\n8.Kitob yetkazib berish - {book_type['delivery']}*\n\n_Kitob uzog'i {delivery_date} gacha tayyor bo'ladi_"
+                await call.message.answer_document(book, caption=caption_for_a4, parse_mode='markdown', reply_markup=ReplyKeyboardRemove())
+                book_info = bot.send_document(chat_id=channel_id, document=book, caption=caption_for_a4, parse_mode='markdown')
+    await call.message.answer("Buyurtmani tasdiqlaysizmi!", reply_markup=confirmation)
 
 
 @dp.callback_query_handler(text=['confirm', 'cancel'])
